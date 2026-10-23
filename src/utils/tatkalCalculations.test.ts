@@ -6,7 +6,10 @@ import {
   calculateTatkalFare, 
   isAcClass, 
   formatPassengerClipboardBundle, 
-  DEFAULT_TATKAL_RULES 
+  DEFAULT_TATKAL_RULES,
+  calculateAlternativeDates,
+  getNearbyStationCodes,
+  generatePostBookingMilestones
 } from './tatkalCalculations';
 
 export function runTatkalCalculationTests(): { name: string; passed: boolean; message?: string }[] {
@@ -83,6 +86,60 @@ export function runTatkalCalculationTests(): { name: string; passed: boolean; me
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     results.push({ name: 'Passenger clipboard bundle generates valid uppercase text', passed: false, message: msg });
+  }
+
+  // Test 6: 3A Tatkal Surcharge (30%, Min ₹300, Max ₹400)
+  try {
+    const fare800 = calculateTatkalFare(800, '3A', 'TQ'); // 30% of 800 is 240, but min is 300 -> 800 + 300 = 1100
+    const fare2000 = calculateTatkalFare(2000, '3A', 'TQ'); // 30% of 2000 is 600, but max is 400 -> 2000 + 400 = 2400
+    const pass = fare800 === 1100 && fare2000 === 2400;
+    results.push({
+      name: '3A Tatkal surcharge respects 30% with Min ₹300 and Max ₹400 cap',
+      passed: pass,
+      message: pass ? undefined : `Got fare800=${fare800}, fare2000=${fare2000}`
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    results.push({ name: '3A Tatkal surcharge respects 30% with Min ₹300 and Max ₹400 cap', passed: false, message: msg });
+  }
+
+  // Test 7: Alternative Date Range Generator
+  try {
+    const alts = calculateAlternativeDates('2026-10-25', '3A', DEFAULT_TATKAL_RULES);
+    const pass = alts.length === 5 && alts[2].isTargetDate && alts[2].date === '2026-10-25';
+    results.push({
+      name: 'Alternative dates generator outputs 5 contiguous days with target date centered',
+      passed: pass
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    results.push({ name: 'Alternative dates generator outputs 5 contiguous days with target date centered', passed: false, message: msg });
+  }
+
+  // Test 8: Metro Station Cluster Hubs
+  try {
+    const ndlsAlts = getNearbyStationCodes('NDLS');
+    const pass = ndlsAlts.includes('NZM') && ndlsAlts.includes('DLI') && ndlsAlts.includes('ANVT');
+    results.push({
+      name: 'Metro cluster resolver maps New Delhi to NZM, DLI and ANVT alternatives',
+      passed: pass
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    results.push({ name: 'Metro cluster resolver maps New Delhi to NZM, DLI and ANVT alternatives', passed: false, message: msg });
+  }
+
+  // Test 9: Post-Booking Milestones Generator
+  try {
+    const milestones = generatePostBookingMilestones('2026-10-30', '16:55');
+    const pass = milestones.length === 3 && milestones.some(m => m.type === 'CHART_PREPARATION');
+    results.push({
+      name: 'Post-booking milestone generator creates Charting, Cancellation & Boarding alerts',
+      passed: pass
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    results.push({ name: 'Post-booking milestone generator creates Charting, Cancellation & Boarding alerts', passed: false, message: msg });
   }
 
   return results;

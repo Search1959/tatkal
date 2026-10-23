@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Station, Train, TravelClass, BookingQuota } from '../types';
 import { useLanguage } from '../context/LanguageContext';
-import { calculateTatkalOpening, calculateTatkalFare } from '../utils/tatkalCalculations';
+import { calculateTatkalOpening, calculateTatkalFare, calculateAlternativeDates, getNearbyStationCodes } from '../utils/tatkalCalculations';
 import { INDIAN_STATIONS } from '../data/mockStations';
 
 interface TrainSearchProps {
@@ -269,7 +269,8 @@ export const TrainSearch: React.FC<TrainSearchProps> = ({
                 value={passengerCount}
                 onChange={(e) => setPassengerCount(Math.min(selectedQuota === 'TQ' ? 4 : 6, Math.max(1, Number(e.target.value))))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-[#0F284E]"
-              />
+              >
+              </input>
             </div>
 
             <div className="flex items-end">
@@ -283,6 +284,62 @@ export const TrainSearch: React.FC<TrainSearchProps> = ({
             </div>
           </div>
         </form>
+
+        {/* Tatkal Assist 2.0 Alternative Date Planning Strip */}
+        <div className="pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-blue-600" />
+              <span>Alternative Dates & Tatkal Opening Windows</span>
+            </span>
+            <span className="text-[11px] text-slate-500 hidden sm:inline">
+              1-Tap Switch Date
+            </span>
+          </div>
+
+          <div className="grid grid-cols-5 gap-2">
+            {calculateAlternativeDates(journeyDate, selectedClass).map((opt) => {
+              const isSelected = opt.date === journeyDate;
+              return (
+                <button
+                  key={opt.date}
+                  type="button"
+                  onClick={() => {
+                    setJourneyDate(opt.date);
+                    onSearch({
+                      from: fromCode,
+                      to: toCode,
+                      date: opt.date,
+                      class: selectedClass,
+                      quota: selectedQuota
+                    });
+                  }}
+                  className={`p-2 rounded-xl border text-center transition-all ${
+                    isSelected
+                      ? 'bg-[#0F284E] text-white border-[#0F284E] shadow-sm'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                  }`}
+                >
+                  <div className={`text-[10px] font-bold uppercase ${isSelected ? 'text-amber-300' : 'text-slate-500'}`}>
+                    {opt.dayName}
+                  </div>
+                  <div className="text-sm font-black my-0.5">
+                    {opt.dayNumber} {opt.monthShort}
+                  </div>
+                  <div className={`text-[9px] font-semibold truncate ${
+                    opt.statusBadge === 'OPEN_NOW'
+                      ? (isSelected ? 'text-emerald-300 font-bold' : 'text-emerald-700 font-bold')
+                      : opt.statusBadge === 'OPENS_SOON'
+                      ? (isSelected ? 'text-blue-200' : 'text-blue-700')
+                      : (isSelected ? 'text-slate-300' : 'text-slate-500')
+                  }`}>
+                    {opt.statusBadge === 'OPEN_NOW' ? '⚡ OPEN NOW' : opt.statusBadge === 'OPENS_SOON' ? 'SOON' : opt.dayName}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Demo Notice Banner */}
@@ -297,7 +354,7 @@ export const TrainSearch: React.FC<TrainSearchProps> = ({
       <div className="space-y-4">
         <div className="flex items-center justify-between text-xs text-slate-600 px-1">
           <span className="font-semibold text-slate-900">
-            {trains.length} Trains available between {fromCode} and {toCode}
+            {trains.length} Trains available between {fromCode} and {toCode} on {journeyDate}
           </span>
           <span>Fares shown for {selectedQuota} Quota ({selectedClass})</span>
         </div>

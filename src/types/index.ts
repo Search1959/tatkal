@@ -180,3 +180,33 @@ export interface UserAccount {
   createdAt: string;
   lastLogin?: string;
 }
+
+export interface AccessibilitySettings {
+  highContrast: boolean;
+  fontSize: 'normal' | 'large' | 'xlarge';
+  hapticFeedback: boolean;
+  soundAlerts: boolean;
+}
+
+export interface AlternativeDateOption {
+  date: string; // YYYY-MM-DD
+  dayName: string; // "Fri", "Sat", "Sun"
+  dayNumber: number; // 24, 25
+  monthShort: string; // "Oct"
+  isTargetDate: boolean;
+  tatkalOpensAt: string; // e.g. "Tomorrow 10:00 AM" or "Open Now" or "Closed"
+  statusBadge: 'OPEN_NOW' | 'OPENS_SOON' | 'UPCOMING' | 'EXPIRED';
+}
+
+export interface PostBookingReminderConfig {
+  pnr: string;
+  journeyId?: string;
+  trainNumber: string;
+  trainName: string;
+  journeyDate: string;
+  departureTime: string;
+  notifyChartPreparation: boolean; // 4 hours before
+  notifyCancellationThreshold: boolean; // 24 hours before
+  notifyBoardingCall: boolean; // 2 hours before
+  createdAt: string;
+}

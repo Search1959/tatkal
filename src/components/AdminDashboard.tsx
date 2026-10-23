@@ -23,11 +23,13 @@ import {
   Plus,
   LogOut,
   Search,
-  Lock
+  Lock,
+  FlaskConical
 } from 'lucide-react';
 import { AdminStats, TatkalRuleConfig, UserAccount, Station } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { INDIAN_STATIONS } from '../data/mockStations';
+import { runTatkalCalculationTests } from '../utils/tatkalCalculations.test';
 
 interface AdminDashboardProps {
   stats: AdminStats;
@@ -45,9 +47,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onLogoutAdmin
 }) => {
   const { t } = useLanguage();
-  const [activeAdminSubTab, setActiveAdminSubTab] = useState<'users' | 'stations' | 'rules' | 'database' | 'logs'>('users');
+  const [activeAdminSubTab, setActiveAdminSubTab] = useState<'users' | 'stations' | 'rules' | 'database' | 'logs' | 'diagnostics'>('users');
   const [copiedSchema, setCopiedSchema] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [testResults, setTestResults] = useState<{ name: string; passed: boolean; message?: string }[]>(() => runTatkalCalculationTests());
 
   // User Accounts State (Create, Read/View, Update/Edit, Delete)
   const [usersList, setUsersList] = useState<UserAccount[]>([
@@ -325,6 +328,16 @@ CREATE TABLE tatkal_rules_config (id INT AUTO_INCREMENT PRIMARY KEY, ac_opening_
         >
           <Terminal className="w-4 h-4" />
           <span>Audit Logs</span>
+        </button>
+
+        <button
+          onClick={() => setActiveAdminSubTab('diagnostics')}
+          className={`px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-1.5 ${
+            activeAdminSubTab === 'diagnostics' ? 'bg-[#0F284E] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <FlaskConical className="w-4 h-4 text-emerald-400" />
+          <span>QA & Rule Diagnostics</span>
         </button>
       </div>
 
@@ -714,6 +727,76 @@ CREATE TABLE passenger_profiles (
               <span>[AUTH] Admin {adminEmail} session verified</span>
               <span className="text-slate-400">Now</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 6: DIAGNOSTICS & AUTOMATED QA TEST RUNNER */}
+      {activeAdminSubTab === 'diagnostics' && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <FlaskConical className="w-4 h-4 text-emerald-600" />
+                <span>Automated Business Logic & Rules QA Test Suite</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Execute unit tests in real time to verify AC/Non-AC Tatkal timings, origin offsets, and surcharge boundary caps.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTestResults(runTatkalCalculationTests())}
+              className="px-3.5 py-2 rounded-lg bg-[#0F284E] hover:bg-[#163B6E] text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Run Automated Tests</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-slate-500 text-[11px] block font-semibold uppercase">Total Executed</span>
+              <span className="text-xl font-bold text-slate-900">{testResults.length} Tests</span>
+            </div>
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+              <span className="text-emerald-700 text-[11px] block font-semibold uppercase">Passed</span>
+              <span className="text-xl font-bold text-emerald-800">
+                {testResults.filter(t => t.passed).length} Passed
+              </span>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-slate-500 text-[11px] block font-semibold uppercase">Failures</span>
+              <span className={`text-xl font-bold ${testResults.some(t => !t.passed) ? 'text-red-700' : 'text-slate-700'}`}>
+                {testResults.filter(t => !t.passed).length}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-xs">
+            {testResults.map((test, idx) => (
+              <div
+                key={idx}
+                className={`p-3 rounded-xl border flex items-start justify-between gap-3 ${
+                  test.passed ? 'bg-emerald-50/50 border-emerald-200 text-slate-800' : 'bg-red-50 border-red-200 text-red-900'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${test.passed ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                    <span className="font-bold text-xs">{test.name}</span>
+                  </div>
+                  {test.message && (
+                    <p className="text-[11px] text-slate-600 pl-4 font-mono">{test.message}</p>
+                  )}
+                </div>
+                <span className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
+                  test.passed ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {test.passed ? 'PASS' : 'FAIL'}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}

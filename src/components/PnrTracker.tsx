@@ -15,13 +15,20 @@ import {
 import { PnrRecord } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../services/api';
+import { generatePostBookingMilestones } from '../utils/tatkalCalculations';
+import { Bell, Check, ShieldAlert } from 'lucide-react';
 
-export const PnrTracker: React.FC = () => {
+interface PnrTrackerProps {
+  onAddAlert?: (alert: { title: string; message: string; type: 'DEPARTURE' | 'PNR_STATUS'; scheduledFor: string }) => void;
+}
+
+export const PnrTracker: React.FC<PnrTrackerProps> = ({ onAddAlert }) => {
   const { t } = useLanguage();
   const [pnrInput, setPnrInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [pnrData, setPnrData] = useState<PnrRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [alertsEnabled, setAlertsEnabled] = useState(false);
 
   const samplePnrs = ['2847591024', '4918237560'];
 
@@ -234,6 +241,63 @@ export const PnrTracker: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+
+            {/* Post-Booking Milestones & Reminder Setup */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                    <Bell className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Post-Booking Journey Reminders & PRS Timeline</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Pre-set alerts for charting, refund thresholds, and boarding call.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onAddAlert) {
+                      onAddAlert({
+                        title: `Chart Alert: PNR ${pnrData.pnr}`,
+                        message: `First chart preparation for ${pnrData.trainNumber} ${pnrData.trainName}. Check coach & berth allotment!`,
+                        type: 'PNR_STATUS',
+                        scheduledFor: new Date().toISOString()
+                      });
+                      onAddAlert({
+                        title: `Departure Call: ${pnrData.trainNumber}`,
+                        message: `Train departs at ${pnrData.scheduledDeparture}. Please proceed to ${pnrData.platform || 'platform'}.`,
+                        type: 'DEPARTURE',
+                        scheduledFor: new Date().toISOString()
+                      });
+                    }
+                    setAlertsEnabled(true);
+                  }}
+                  disabled={alertsEnabled}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                    alertsEnabled
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : 'bg-[#0F284E] hover:bg-[#163B6E] text-white shadow-xs'
+                  }`}
+                >
+                  {alertsEnabled ? <Check className="w-3.5 h-3.5" /> : <Bell className="w-3.5 h-3.5" />}
+                  <span>{alertsEnabled ? 'Reminders Active' : 'Activate Departure Alerts'}</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+                {generatePostBookingMilestones(pnrData.journeyDate, pnrData.scheduledDeparture.slice(0, 5)).map((m, idx) => (
+                  <div key={idx} className="bg-white p-2.5 rounded-lg border border-slate-200 text-[11px] space-y-1">
+                    <span className="font-mono font-bold text-blue-700 block text-[10px]">
+                      {m.hoursBefore} HOURS BEFORE DEPARTURE
+                    </span>
+                    <strong className="text-slate-900 block font-semibold">{m.title}</strong>
+                    <p className="text-slate-500 text-[10px] leading-tight">{m.description}</p>
+                  </div>
+                ))}
               </div>
             </div>
 

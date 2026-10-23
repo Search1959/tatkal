@@ -13,6 +13,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { BookingHandoffModal } from './components/BookingHandoffModal';
 import { DeviceSyncModal } from './components/DeviceSyncModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
+import { PrivacySettingsModal } from './components/PrivacySettingsModal';
 import { Lock } from 'lucide-react';
 
 import { 
@@ -24,7 +25,8 @@ import {
   AdminStats, 
   TatkalRuleConfig,
   TravelClass,
-  BookingQuota
+  BookingQuota,
+  AccessibilitySettings
 } from './types';
 import { api } from './services/api';
 import { DEFAULT_TATKAL_RULES } from './utils/tatkalCalculations';
@@ -61,6 +63,39 @@ function AppContent() {
   });
   const [isCloudOnline, setIsCloudOnline] = useState<boolean>(true);
   const [syncModalOpen, setSyncModalOpen] = useState<boolean>(false);
+  const [privacyModalOpen, setPrivacyModalOpen] = useState<boolean>(false);
+  const [accessibility, setAccessibility] = useState<AccessibilitySettings>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('tatkal_accessibility');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // fallback
+        }
+      }
+    }
+    return { highContrast: false, fontSize: 'normal', hapticFeedback: true, soundAlerts: true };
+  });
+
+  const handleUpdateAccessibility = (updated: Partial<AccessibilitySettings>) => {
+    setAccessibility(prev => {
+      const next = { ...prev, ...updated };
+      localStorage.setItem('tatkal_accessibility', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleClearAllLocalData = () => {
+    setPassengers([]);
+    setSavedJourneys([]);
+    setAlerts([]);
+    localStorage.removeItem('tatkal_passengers');
+    localStorage.removeItem('tatkal_journeys');
+    localStorage.removeItem('tatkal_alerts');
+    localStorage.removeItem('tatkal_recent_searches');
+    localStorage.removeItem('tatkal_cloud_sync_id');
+  };
 
   // Application Data States - Instant initial data guarantees zero blank dropdowns on Vercel
   const [stations, setStations] = useState<Station[]>(INDIAN_STATIONS);
@@ -349,12 +384,17 @@ function AppContent() {
   const pendingAlertsCount = alerts.filter(a => a.status === 'PENDING').length;
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800 antialiased selection:bg-amber-300 selection:text-slate-950">
+    <div className={`min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800 antialiased selection:bg-amber-300 selection:text-slate-950 ${
+      accessibility.highContrast ? 'contrast-125 saturate-110' : ''
+    } ${
+      accessibility.fontSize === 'large' ? 'text-base' : accessibility.fontSize === 'xlarge' ? 'text-lg' : ''
+    }`}>
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         pendingAlertsCount={pendingAlertsCount}
         onOpenSyncModal={() => setSyncModalOpen(true)}
+        onOpenPrivacyModal={() => setPrivacyModalOpen(true)}
         isCloudConnected={isCloudOnline}
         isAdmin={isAdminAuthenticated}
         onOpenAdminLogin={() => setAdminLoginOpen(true)}
@@ -417,7 +457,23 @@ function AppContent() {
         )}
 
         {activeTab === 'pnr' && (
-          <PnrTracker />
+          <PnrTracker
+            onAddAlert={(alertData) => {
+              const newAlert: AlertNotification = {
+                id: `alt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                title: alertData.title,
+                message: alertData.message,
+                scheduledFor: alertData.scheduledFor,
+                type: alertData.type,
+                status: 'PENDING',
+                createdAt: new Date().toISOString()
+              };
+              setAlerts(prev => [newAlert, ...prev]);
+              if (cloudUserId) {
+                saveCloudAlert(cloudUserId, newAlert);
+              }
+            }}
+          />
         )}
 
         {activeTab === 'alerts' && (
@@ -503,6 +559,17 @@ function AppContent() {
           sessionStorage.setItem('tatkal_is_admin', 'true');
           setActiveTab('admin');
         }}
+      />
+
+      {/* Privacy, Security & Accessibility Modal */}
+      <PrivacySettingsModal
+        isOpen={privacyModalOpen}
+        onClose={() => setPrivacyModalOpen(false)}
+        passengers={passengers}
+        journeys={savedJourneys}
+        accessibility={accessibility}
+        onUpdateAccessibility={handleUpdateAccessibility}
+        onClearAllLocalData={handleClearAllLocalData}
       />
 
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />

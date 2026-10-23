@@ -21,7 +21,9 @@ import {
   calculateTatkalOpening, 
   formatCountdown, 
   getTimeUntilTatkal,
-  isAcClass
+  isAcClass,
+  calculateAlternativeDates,
+  triggerHapticFeedback
 } from '../utils/tatkalCalculations';
 import { soundPlayer } from '../utils/audioAlert';
 
@@ -123,6 +125,53 @@ export const TatkalPlanner: React.FC<TatkalPlannerProps> = ({
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
             Tatkal opens exactly 1 day in advance of the train's departure from its <strong>Originating Station</strong> (10:00 AM for AC, 11:00 AM for Non-AC). Select your journey date and travel class below to reveal the exact second bookings open.
           </p>
+        </div>
+      </div>
+
+      {/* Alternative Date Planning Strip */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-blue-600" />
+            <span>Alternative Journey Dates & Booking Windows</span>
+          </span>
+          <span className="text-[11px] text-slate-500">1-Tap Select Date</span>
+        </div>
+        <div className="grid grid-cols-5 gap-2">
+          {calculateAlternativeDates(journeyDate, travelClass, rules).map((opt) => {
+            const isSelected = opt.date === journeyDate;
+            return (
+              <button
+                key={opt.date}
+                type="button"
+                onClick={() => {
+                  setJourneyDate(opt.date);
+                  setAlarmPlayed(false);
+                }}
+                className={`p-2.5 rounded-xl border text-center transition-all ${
+                  isSelected
+                    ? 'bg-[#0F284E] text-white border-[#0F284E] shadow-sm'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+              >
+                <div className={`text-[10px] font-bold uppercase ${isSelected ? 'text-amber-300' : 'text-slate-500'}`}>
+                  {opt.dayName}
+                </div>
+                <div className="text-sm font-black my-0.5">
+                  {opt.dayNumber} {opt.monthShort}
+                </div>
+                <div className={`text-[9px] font-semibold truncate ${
+                  opt.statusBadge === 'OPEN_NOW'
+                    ? (isSelected ? 'text-emerald-300 font-bold' : 'text-emerald-700 font-bold')
+                    : opt.statusBadge === 'OPENS_SOON'
+                    ? (isSelected ? 'text-blue-200' : 'text-blue-700')
+                    : (isSelected ? 'text-slate-300' : 'text-slate-500')
+                }`}>
+                  {opt.statusBadge === 'OPEN_NOW' ? '⚡ OPEN NOW' : opt.statusBadge === 'OPENS_SOON' ? 'SOON' : opt.dayName}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 

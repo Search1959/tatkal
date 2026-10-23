@@ -231,3 +231,133 @@ export function formatPassengerClipboardBundle(passengers: Array<{
     return `${idx + 1}. ${p.name.toUpperCase()} | Age: ${p.age} | ${p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : 'Transgender'} | Berth: ${p.berthPreference} | Food: ${p.foodPreference}`;
   }).join('\n');
 }
+
+/**
+ * Metropolitan station cluster clusters for alternative train planning
+ */
+export const METRO_STATION_CLUSTERS: Record<string, { city: string; stations: string[] }> = {
+  NDLS: { city: 'Delhi NCR', stations: ['NDLS', 'NZM', 'DLI', 'ANVT', 'DEC'] },
+  NZM: { city: 'Delhi NCR', stations: ['NDLS', 'NZM', 'DLI', 'ANVT', 'DEC'] },
+  DLI: { city: 'Delhi NCR', stations: ['NDLS', 'NZM', 'DLI', 'ANVT', 'DEC'] },
+  ANVT: { city: 'Delhi NCR', stations: ['NDLS', 'NZM', 'DLI', 'ANVT', 'DEC'] },
+  MMCT: { city: 'Mumbai MMR', stations: ['MMCT', 'BDTS', 'CSMT', 'LTT', 'DR', 'KYN'] },
+  CSMT: { city: 'Mumbai MMR', stations: ['MMCT', 'BDTS', 'CSMT', 'LTT', 'DR', 'KYN'] },
+  BDTS: { city: 'Mumbai MMR', stations: ['MMCT', 'BDTS', 'CSMT', 'LTT', 'DR', 'KYN'] },
+  HWH: { city: 'Kolkata Hub', stations: ['HWH', 'SDAH', 'KOAA', 'SHM'] },
+  SDAH: { city: 'Kolkata Hub', stations: ['HWH', 'SDAH', 'KOAA', 'SHM'] },
+  MAS: { city: 'Chennai Hub', stations: ['MAS', 'MS', 'TBM'] },
+  MS: { city: 'Chennai Hub', stations: ['MAS', 'MS', 'TBM'] },
+  SBC: { city: 'Bengaluru Hub', stations: ['SBC', 'YPR', 'SMVB', 'BNC'] },
+  YPR: { city: 'Bengaluru Hub', stations: ['SBC', 'YPR', 'SMVB', 'BNC'] }
+};
+
+export function getNearbyStationCodes(code: string): string[] {
+  const cluster = METRO_STATION_CLUSTERS[code.toUpperCase()];
+  if (!cluster) return [code.toUpperCase()];
+  return cluster.stations;
+}
+
+/**
+ * Generate 5-day alternative date planning hopper around target journey date
+ */
+export function calculateAlternativeDates(
+  targetDateStr: string,
+  className: TravelClass = '3A',
+  rules: TatkalRuleConfig = DEFAULT_TATKAL_RULES
+) {
+  const [year, month, day] = targetDateStr.split('-').map(Number);
+  const targetDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+  
+  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  const options = [];
+  
+  // -2, -1, 0, +1, +2 days
+  for (let offset = -2; offset <= 2; offset++) {
+    const curDate = new Date(targetDate.getTime() + offset * 86400000);
+    const y = curDate.getUTCFullYear();
+    const m = String(curDate.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(curDate.getUTCDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${d}`;
+    
+    // Calculate opening for this date
+    const opening = calculateTatkalOpening(dateStr, className, 0, rules);
+    const diffMs = getTimeUntilTatkal(opening.tatkalDateTimeIso);
+    
+    let statusBadge: 'OPEN_NOW' | 'OPENS_SOON' | 'UPCOMING' | 'EXPIRED' = 'UPCOMING';
+    let tatkalOpensAt = `Opens ${opening.tatkalDate} ${opening.tatkalTime.slice(0, 5)} IST`;
+    
+    if (diffMs <= 0 && Math.abs(diffMs) <= 3600000) {
+      statusBadge = 'OPEN_NOW';
+      tatkalOpensAt = 'Tatkal Window Open Now';
+    } else if (diffMs < 0) {
+      statusBadge = 'EXPIRED';
+      tatkalOpensAt = 'Tatkal Window Passed';
+    } else if (diffMs < 86400000) {
+      statusBadge = 'OPENS_SOON';
+      tatkalOpensAt = `Opens in ${Math.round(diffMs / 3600000)}h (${opening.tatkalTime.slice(0, 5)} IST)`;
+    }
+    
+    options.push({
+      date: dateStr,
+      dayName: daysOfWeek[curDate.getUTCDay()],
+      dayNumber: curDate.getUTCDate(),
+      monthShort: months[curDate.getUTCMonth()],
+      isTargetDate: offset === 0,
+      tatkalOpensAt,
+      statusBadge
+    });
+  }
+  
+  return options;
+}
+
+/**
+ * Triggers safe mobile haptic vibration if supported by device
+ */
+export function triggerHapticFeedback(pattern: number | number[] = 50) {
+  if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch {
+      // Haptics not allowed or denied
+    }
+  }
+}
+
+/**
+ * Post-Booking Journey Milestones & Alerts Calculator
+ */
+export function generatePostBookingMilestones(journeyDate: string, departureTime: string) {
+  // Estimated ISO timestamp of train departure
+  const depIso = `${journeyDate}T${departureTime}:00+05:30`;
+  const depTime = new Date(depIso).getTime();
+  
+  return [
+    {
+      type: 'CANCELLATION_DEADLINE',
+      title: '24-Hour Refund Threshold',
+      description: 'Free/low-fee ticket cancellation window expires 24 hours before train departure. After this, 25% to 50% cancellation deduction applies.',
+      triggerTimeIso: new Date(depTime - 24 * 3600000).toISOString(),
+      hoursBefore: 24,
+      importance: 'HIGH'
+    },
+    {
+      type: 'CHART_PREPARATION',
+      title: 'First Charting & Berth Allotment',
+      description: 'Indian Railways PRS finalizes first reservation chart approx 4 hours before originating station departure. RAC/WL berths will be confirmed or refunded.',
+      triggerTimeIso: new Date(depTime - 4 * 3600000).toISOString(),
+      hoursBefore: 4,
+      importance: 'CRITICAL'
+    },
+    {
+      type: 'BOARDING_CALL',
+      title: 'Station Arrival & Platform Standby',
+      description: 'Reach boarding platform 60 to 90 minutes early with ID proof (Aadhaar / Voter ID / Passport) and confirmed IRCTC e-Ticket.',
+      triggerTimeIso: new Date(depTime - 2 * 3600000).toISOString(),
+      hoursBefore: 2,
+      importance: 'MEDIUM'
+    }
+  ];
+}
