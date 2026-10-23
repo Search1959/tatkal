@@ -26,6 +26,8 @@ import {
 } from './types';
 import { api } from './services/api';
 import { DEFAULT_TATKAL_RULES } from './utils/tatkalCalculations';
+import { INDIAN_STATIONS } from './data/mockStations';
+import { INDIAN_TRAINS } from './data/mockTrains';
 import { 
   initAuthSession, 
   testFirestoreConnection,
@@ -51,9 +53,9 @@ function AppContent() {
   const [isCloudOnline, setIsCloudOnline] = useState<boolean>(true);
   const [syncModalOpen, setSyncModalOpen] = useState<boolean>(false);
 
-  // Application Data States
-  const [stations, setStations] = useState<Station[]>([]);
-  const [trains, setTrains] = useState<Train[]>([]);
+  // Application Data States - Instant initial data guarantees zero blank dropdowns on Vercel
+  const [stations, setStations] = useState<Station[]>(INDIAN_STATIONS);
+  const [trains, setTrains] = useState<Train[]>(INDIAN_TRAINS);
   const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [savedJourneys, setSavedJourneys] = useState<SavedJourney[]>([]);
   const [alerts, setAlerts] = useState<AlertNotification[]>([]);

@@ -18,6 +18,7 @@ import {
 import { Station, Train, TravelClass, BookingQuota } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { calculateTatkalOpening, calculateTatkalFare } from '../utils/tatkalCalculations';
+import { INDIAN_STATIONS } from '../data/mockStations';
 
 interface TrainSearchProps {
   stations: Station[];
@@ -59,6 +60,7 @@ export const TrainSearch: React.FC<TrainSearchProps> = ({
   onPlanTatkal
 }) => {
   const { t } = useLanguage();
+  const activeStations = stations && stations.length > 0 ? stations : INDIAN_STATIONS;
 
   const [fromCode, setFromCode] = useState('NDLS');
   const [toCode, setToCode] = useState('MMCT');
@@ -164,7 +166,7 @@ export const TrainSearch: React.FC<TrainSearchProps> = ({
                 onChange={(e) => setFromCode(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#0F284E]"
               >
-                {stations.map(stn => (
+                {activeStations.map(stn => (
                   <option key={`src-${stn.code}`} value={stn.code}>
                     {stn.name} ({stn.code}) - {stn.city}
                   </option>
@@ -194,7 +196,7 @@ export const TrainSearch: React.FC<TrainSearchProps> = ({
                 onChange={(e) => setToCode(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#0F284E]"
               >
-                {stations.map(stn => (
+                {activeStations.map(stn => (
                   <option key={`dst-${stn.code}`} value={stn.code}>
                     {stn.name} ({stn.code}) - {stn.city}
                   </option>

@@ -18,6 +18,7 @@ import {
 import { SavedJourney, Passenger, Station } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { formatCountdown } from '../utils/tatkalCalculations';
+import { INDIAN_STATIONS } from '../data/mockStations';
 
 interface HomeDashboardProps {
   savedJourneys: SavedJourney[];
@@ -37,6 +38,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   onQuickSearch
 }) => {
   const { t } = useLanguage();
+  const activeStations = stations && stations.length > 0 ? stations : INDIAN_STATIONS;
 
   const [fromCode, setFromCode] = useState('NDLS');
   const [toCode, setToCode] = useState('MMCT');
@@ -253,7 +255,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                   onChange={(e) => setFromCode(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#0F284E]"
                 >
-                  {stations.map(stn => (
+                  {activeStations.map(stn => (
                     <option key={`from-${stn.code}`} value={stn.code}>
                       {stn.name} ({stn.code}) - {stn.city}
                     </option>
@@ -271,7 +273,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                   onChange={(e) => setToCode(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#0F284E]"
                 >
-                  {stations.map(stn => (
+                  {activeStations.map(stn => (
                     <option key={`to-${stn.code}`} value={stn.code}>
                       {stn.name} ({stn.code}) - {stn.city}
                     </option>
