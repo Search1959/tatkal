@@ -168,3 +168,15 @@ export interface AdminStats {
   isLiveApiConfigured: boolean;
   dataSourceLabel: string;
 }
+
+export interface UserAccount {
+  id: string;
+  fullName: string;
+  email: string;
+  phoneNumber?: string;
+  role: 'ADMIN' | 'OPERATOR' | 'PASSENGER';
+  status: 'ACTIVE' | 'SUSPENDED';
+  preferredLanguage?: 'en' | 'hi';
+  createdAt: string;
+  lastLogin?: string;
+}

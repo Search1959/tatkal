@@ -11,7 +11,9 @@ import {
   Briefcase, 
   User, 
   Lock,
-  Utensils
+  Utensils,
+  Edit3,
+  X
 } from 'lucide-react';
 import { Passenger, BerthPreference, FoodPreference, Gender } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -20,18 +22,21 @@ import { formatPassengerClipboardBundle } from '../utils/tatkalCalculations';
 interface PassengerProfilesProps {
   passengers: Passenger[];
   onAddPassenger: (data: Omit<Passenger, 'id' | 'createdAt'>) => void;
+  onUpdatePassenger?: (id: string, updated: Partial<Passenger>) => void;
   onDeletePassenger: (id: string) => void;
 }
 
 export const PassengerProfiles: React.FC<PassengerProfilesProps> = ({
   passengers,
   onAddPassenger,
+  onUpdatePassenger,
   onDeletePassenger
 }) => {
   const { t } = useLanguage();
   const [showAddForm, setShowAddForm] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedGroupFilter, setSelectedGroupFilter] = useState<string>('ALL');
+  const [editingPassenger, setEditingPassenger] = useState<Passenger | null>(null);
 
   // Form states
   const [name, setName] = useState('');
@@ -364,20 +369,176 @@ export const PassengerProfiles: React.FC<PassengerProfilesProps> = ({
                   className="text-blue-700 hover:text-blue-900 font-medium flex items-center gap-1"
                 >
                   <Copy className="w-3 h-3" />
-                  <span>Copy Single</span>
+                  <span>Copy</span>
                 </button>
-                <button
-                  onClick={() => onDeletePassenger(p.id)}
-                  className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
-                  title="Delete passenger profile"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setEditingPassenger({ ...p })}
+                    className="text-slate-600 hover:text-slate-900 px-2 py-1 rounded hover:bg-slate-100 flex items-center gap-1 font-medium"
+                    title="Edit passenger profile"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Edit</span>
+                  </button>
+
+                  <button
+                    onClick={() => onDeletePassenger(p.id)}
+                    className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
+                    title="Delete passenger profile"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* Edit Passenger Modal */}
+      {editingPassenger && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
+            <div className="bg-[#0A1D37] text-white p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                  <Edit3 className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Edit Passenger Profile</h3>
+                  <p className="text-[11px] text-slate-300">Update traveller details</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setEditingPassenger(null)} 
+                className="p-1 rounded text-slate-300 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editingPassenger && onUpdatePassenger) {
+                  onUpdatePassenger(editingPassenger.id, editingPassenger);
+                  setEditingPassenger(null);
+                }
+              }} 
+              className="p-5 space-y-4 text-xs"
+            >
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="block font-semibold text-slate-700 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingPassenger.name}
+                    onChange={(e) => setEditingPassenger({ ...editingPassenger, name: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg uppercase font-medium text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Age</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={120}
+                    required
+                    value={editingPassenger.age}
+                    onChange={(e) => setEditingPassenger({ ...editingPassenger, age: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-medium text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Gender</label>
+                  <select
+                    value={editingPassenger.gender}
+                    onChange={(e) => setEditingPassenger({ ...editingPassenger, gender: e.target.value as Gender })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-medium text-slate-900 bg-white"
+                  >
+                    <option value="M">Male (M)</option>
+                    <option value="F">Female (F)</option>
+                    <option value="T">Transgender (T)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Berth Choice</label>
+                  <select
+                    value={editingPassenger.berthPreference}
+                    onChange={(e) => setEditingPassenger({ ...editingPassenger, berthPreference: e.target.value as BerthPreference })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-medium text-slate-900 bg-white"
+                  >
+                    <option value="NO_PREF">No Preference</option>
+                    <option value="LOWER">Lower Berth</option>
+                    <option value="MIDDLE">Middle Berth</option>
+                    <option value="UPPER">Upper Berth</option>
+                    <option value="SIDE_LOWER">Side Lower</option>
+                    <option value="SIDE_UPPER">Side Upper</option>
+                    <option value="WINDOW">Window</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Meal Choice</label>
+                  <select
+                    value={editingPassenger.foodPreference}
+                    onChange={(e) => setEditingPassenger({ ...editingPassenger, foodPreference: e.target.value as FoodPreference })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-medium text-slate-900 bg-white"
+                  >
+                    <option value="V">Veg</option>
+                    <option value="N">Non-Veg</option>
+                    <option value="NONE">No Food</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Group Tag</label>
+                  <input
+                    type="text"
+                    value={editingPassenger.groupTag || 'Family'}
+                    onChange={(e) => setEditingPassenger({ ...editingPassenger, groupTag: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-medium text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">ID (Last 4 Digits)</label>
+                  <input
+                    type="text"
+                    maxLength={4}
+                    value={editingPassenger.idCardLast4 || ''}
+                    onChange={(e) => setEditingPassenger({ ...editingPassenger, idCardLast4: e.target.value.replace(/\D/g, '') })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono font-medium text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingPassenger(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-[#0F284E] hover:bg-[#163B6E] text-white font-bold"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

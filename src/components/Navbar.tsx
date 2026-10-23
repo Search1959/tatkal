@@ -9,7 +9,9 @@ import {
   Settings,
   Menu,
   X,
-  Cloud
+  Cloud,
+  Lock,
+  LogOut
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -19,6 +21,9 @@ interface NavbarProps {
   pendingAlertsCount: number;
   onOpenSyncModal?: () => void;
   isCloudConnected?: boolean;
+  isAdmin?: boolean;
+  onOpenAdminLogin?: () => void;
+  onAdminLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ 
@@ -26,7 +31,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab, 
   pendingAlertsCount,
   onOpenSyncModal,
-  isCloudConnected = true
+  isCloudConnected = true,
+  isAdmin = false,
+  onOpenAdminLogin,
+  onAdminLogout
 }) => {
   const { language, setLanguage, t } = useLanguage();
   const [istTime, setIstTime] = useState<string>('');
@@ -52,6 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  // Passenger-facing main navigation (Admin removed as requested)
   const navItems = [
     { id: 'dashboard', label: t.home },
     { id: 'search', label: t.findTrains },
@@ -59,13 +68,12 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'journeys', label: t.myJourneys },
     { id: 'passengers', label: t.passengerProfiles },
     { id: 'pnr', label: t.pnrStatus },
-    { id: 'alerts', label: t.alerts, badge: pendingAlertsCount },
-    { id: 'admin', label: t.admin }
+    { id: 'alerts', label: t.alerts, badge: pendingAlertsCount }
   ];
 
   return (
     <header className="sticky top-0 z-40 bg-[#0A1D37] border-b border-[#1E3A5F] text-white">
-      {/* Top micro disclaimer */}
+      {/* Top micro disclaimer & Staff Admin Access */}
       <div className="bg-[#071324] px-4 py-1 text-xs text-slate-300 flex items-center justify-between border-b border-white/5">
         <div className="flex items-center gap-2 truncate">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
@@ -74,7 +82,34 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="hidden sm:flex items-center gap-3 shrink-0 text-slate-400 text-xs">
           <span>Official IRCTC Safe Companion</span>
           <span aria-hidden="true">·</span>
-          <span>No Bots or Captcha Automation</span>
+          {isAdmin ? (
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setActiveTab('admin')}
+                className="text-amber-300 font-bold hover:underline flex items-center gap-1 bg-amber-950/60 border border-amber-600/40 px-2 py-0.5 rounded text-[11px]"
+              >
+                <Settings className="w-3 h-3" />
+                <span>Admin Console (Active)</span>
+              </button>
+              <button
+                onClick={onAdminLogout}
+                className="text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold text-[11px]"
+                title="Log out of Administrator Session"
+              >
+                <LogOut className="w-3 h-3" />
+                <span>Logout</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenAdminLogin}
+              className="text-slate-300 hover:text-amber-300 transition-colors flex items-center gap-1 font-medium hover:underline text-[11px]"
+              title="System Administrator Login"
+            >
+              <Lock className="w-3 h-3 text-amber-400" />
+              <span>Admin Portal</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -214,7 +249,43 @@ export const Navbar: React.FC<NavbarProps> = ({
             ))}
           </div>
 
-          <div className="pt-2">
+          <div className="pt-2 space-y-1.5">
+            {isAdmin ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setActiveTab('admin');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex-1 py-2 px-3 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>Admin Console</span>
+                </button>
+                <button
+                  onClick={() => {
+                    onAdminLogout?.();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="py-2 px-3 rounded-lg bg-red-900/60 text-red-200 border border-red-500/30 text-xs font-semibold flex items-center gap-1"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  onOpenAdminLogin?.();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full py-2 px-3 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-white/10 text-xs font-medium flex items-center justify-center gap-1.5"
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>System Admin Portal</span>
+              </button>
+            )}
+
             <a
               href="https://www.irctc.co.in/nget/train-search"
               target="_blank"

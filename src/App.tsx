@@ -12,6 +12,8 @@ import { AlertsManager } from './components/AlertsManager';
 import { AdminDashboard } from './components/AdminDashboard';
 import { BookingHandoffModal } from './components/BookingHandoffModal';
 import { DeviceSyncModal } from './components/DeviceSyncModal';
+import { AdminLoginModal } from './components/AdminLoginModal';
+import { Lock } from 'lucide-react';
 
 import { 
   Station, 
@@ -45,6 +47,13 @@ import {
 function AppContent() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+
+  // Admin Authentication State
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && sessionStorage.getItem('tatkal_is_admin') === 'true';
+  });
+  const [adminEmail, setAdminEmail] = useState<string>('admin@tatkalassist.rail.in');
+  const [adminLoginOpen, setAdminLoginOpen] = useState<boolean>(false);
 
   // Cloud Synchronization States
   const [cloudUserId, setCloudUserId] = useState<string>(() => {
@@ -217,6 +226,19 @@ function AppContent() {
     }
   };
 
+  const handleUpdatePassenger = (id: string, updated: Partial<Passenger>) => {
+    setPassengers(prev => prev.map(p => {
+      if (p.id === id) {
+        const merged = { ...p, ...updated };
+        if (cloudUserId) {
+          saveCloudPassenger(cloudUserId, merged).catch(e => console.warn('Cloud update:', e));
+        }
+        return merged;
+      }
+      return p;
+    }));
+  };
+
   // Journey CRUD
   const handleSaveJourney = async (journeyData: Partial<SavedJourney>) => {
     try {
@@ -231,6 +253,19 @@ function AppContent() {
     } catch (err) {
       console.error('Failed to save journey:', err);
     }
+  };
+
+  const handleUpdateJourney = (id: string, updated: Partial<SavedJourney>) => {
+    setSavedJourneys(prev => prev.map(j => {
+      if (j.id === id) {
+        const merged = { ...j, ...updated };
+        if (cloudUserId) {
+          saveCloudJourney(cloudUserId, merged).catch(e => console.warn('Cloud journey update:', e));
+        }
+        return merged;
+      }
+      return j;
+    }));
   };
 
   const handleDeleteJourney = async (id: string) => {
@@ -321,6 +356,13 @@ function AppContent() {
         pendingAlertsCount={pendingAlertsCount}
         onOpenSyncModal={() => setSyncModalOpen(true)}
         isCloudConnected={isCloudOnline}
+        isAdmin={isAdminAuthenticated}
+        onOpenAdminLogin={() => setAdminLoginOpen(true)}
+        onAdminLogout={() => {
+          setIsAdminAuthenticated(false);
+          sessionStorage.removeItem('tatkal_is_admin');
+          if (activeTab === 'admin') setActiveTab('dashboard');
+        }}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-12">
@@ -359,6 +401,7 @@ function AppContent() {
           <MyJourneys
             journeys={savedJourneys}
             onDeleteJourney={handleDeleteJourney}
+            onUpdateJourney={handleUpdateJourney}
             onOpenHandoff={handleOpenHandoffFromJourney}
             onNavigateToSearch={() => setActiveTab('search')}
           />
@@ -368,6 +411,7 @@ function AppContent() {
           <PassengerProfiles
             passengers={passengers}
             onAddPassenger={handleAddPassenger}
+            onUpdatePassenger={handleUpdatePassenger}
             onDeletePassenger={handleDeletePassenger}
           />
         )}
@@ -384,11 +428,37 @@ function AppContent() {
         )}
 
         {activeTab === 'admin' && (
-          <AdminDashboard
-            stats={adminStats}
-            rules={rules}
-            onUpdateRules={handleUpdateRules}
-          />
+          isAdminAuthenticated ? (
+            <AdminDashboard
+              stats={adminStats}
+              rules={rules}
+              onUpdateRules={handleUpdateRules}
+              adminEmail={adminEmail}
+              onLogoutAdmin={() => {
+                setIsAdminAuthenticated(false);
+                sessionStorage.removeItem('tatkal_is_admin');
+                setActiveTab('dashboard');
+              }}
+            />
+          ) : (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center max-w-md mx-auto space-y-4 my-8">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto text-red-700">
+                <Lock className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900">Administrator Access Required</h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  The Admin Console and Railway Rules configuration are restricted to authorized personnel.
+                </p>
+              </div>
+              <button
+                onClick={() => setAdminLoginOpen(true)}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#0F284E] hover:bg-[#163B6E] text-white font-bold text-xs shadow-md transition-colors"
+              >
+                Sign In to Admin Portal
+              </button>
+            </div>
+          )
         )}
       </main>
 
@@ -420,6 +490,18 @@ function AppContent() {
         onSwitchSyncId={(newId) => {
           setCloudUserId(newId);
           localStorage.setItem('tatkal_cloud_sync_id', newId);
+        }}
+      />
+
+      {/* Admin Login Modal */}
+      <AdminLoginModal
+        isOpen={adminLoginOpen}
+        onClose={() => setAdminLoginOpen(false)}
+        onLoginSuccess={(email) => {
+          setIsAdminAuthenticated(true);
+          setAdminEmail(email);
+          sessionStorage.setItem('tatkal_is_admin', 'true');
+          setActiveTab('admin');
         }}
       />
 
