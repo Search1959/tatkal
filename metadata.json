@@ -1,0 +1,6 @@
+{
+  "name": "Tatkal Assist - Smart Railway Booking Companion",
+  "description": "Smart preparation, precision countdown, passenger master list, and official booking handoff for Indian Railways Tatkal tickets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

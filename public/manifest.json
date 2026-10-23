@@ -1,0 +1,24 @@
+{
+  "name": "Tatkal Assist - Smart Railway Booking Companion",
+  "short_name": "Tatkal Assist",
+  "description": "Smart preparation, precision countdown, passenger master list, and official booking handoff for Indian Railways Tatkal tickets.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F284E",
+  "theme_color": "#0F284E",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ]
+}

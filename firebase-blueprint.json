@@ -1,0 +1,106 @@
+{
+  "entities": {
+    "PassengerProfile": {
+      "title": "Passenger Profile",
+      "description": "Passenger details for Indian Railways Master List",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "age": { "type": "number" },
+        "gender": { "type": "string", "enum": ["M", "F", "T"] },
+        "berthPreference": { "type": "string" },
+        "foodPreference": { "type": "string" },
+        "seniorCitizen": { "type": "boolean" },
+        "groupTag": { "type": "string" },
+        "idCardType": { "type": "string" },
+        "idCardLast4": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "age", "gender"]
+    },
+    "SavedJourney": {
+      "title": "Saved Journey",
+      "description": "User saved railway journey with Tatkal calculation details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "trainNumber": { "type": "string" },
+        "trainName": { "type": "string" },
+        "fromStationCode": { "type": "string" },
+        "fromStationName": { "type": "string" },
+        "toStationCode": { "type": "string" },
+        "toStationName": { "type": "string" },
+        "journeyDate": { "type": "string" },
+        "travelClass": { "type": "string" },
+        "quota": { "type": "string" },
+        "tatkalOpeningDate": { "type": "string" },
+        "tatkalOpeningTime": { "type": "string" },
+        "isAcClass": { "type": "boolean" },
+        "reminderEnabled": { "type": "boolean" },
+        "reminderMinutesBefore": { "type": "number" },
+        "originDepartureOffsetDays": { "type": "number" },
+        "notes": { "type": "string" },
+        "pnr": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "trainNumber", "journeyDate", "fromStationCode", "toStationCode", "travelClass"]
+    },
+    "AlertNotification": {
+      "title": "Alert Notification",
+      "description": "Tatkal countdown reminder alert",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "journeyId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "scheduledFor": { "type": "string" },
+        "type": { "type": "string" },
+        "status": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "message", "scheduledFor", "status"]
+    },
+    "PnrRecord": {
+      "title": "PNR Record",
+      "description": "Passenger Name Record status",
+      "type": "object",
+      "properties": {
+        "pnr": { "type": "string" },
+        "trainNumber": { "type": "string" },
+        "trainName": { "type": "string" },
+        "fromStationCode": { "type": "string" },
+        "fromStationName": { "type": "string" },
+        "toStationCode": { "type": "string" },
+        "toStationName": { "type": "string" },
+        "journeyDate": { "type": "string" },
+        "travelClass": { "type": "string" },
+        "chartingStatus": { "type": "string" },
+        "lastChecked": { "type": "string" }
+      },
+      "required": ["pnr", "trainNumber", "journeyDate"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/passengers/{passengerId}": {
+      "schema": "PassengerProfile",
+      "description": "User passenger profiles for quick booking"
+    },
+    "/users/{userId}/journeys/{journeyId}": {
+      "schema": "SavedJourney",
+      "description": "User saved journeys and Tatkal countdowns"
+    },
+    "/users/{userId}/alerts/{alertId}": {
+      "schema": "AlertNotification",
+      "description": "Countdown notifications and alarms"
+    },
+    "/pnr_records/{pnr}": {
+      "schema": "PnrRecord",
+      "description": "Public PNR cache and tracking records"
+    }
+  }
+}
